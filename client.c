@@ -102,7 +102,7 @@ void init() {
     printf("\n");
 }
 
-int main(int argc, char const *argv[])
+int main()
 {
     struct sockaddr_in server;
     int socket_file_descriptor = 0;
@@ -142,16 +142,21 @@ int main(int argc, char const *argv[])
 
         char local_message[1024];
 
+        printf("Enter your message: ");
+        fgets(local_message, 900, stdin);
+        if (strstr(local_message, "exit"))
+        {
+            // remove_online_user();
+            if ((send(socket_file_descriptor, local_message, strlen(local_message), 0)) < 0)
+            {
+                printf("Couldn't send message\n");
+                return 0;
+            }
+            break;
+        }
         memset(message_buffer, 0, sizeof(message_buffer));
         strcat(message_buffer, username);
         strcat(message_buffer, ": ");
-        printf("Enter your message: ");
-        fgets(local_message, 900, stdin);
-        if (strstr(message_buffer, "exit"))
-        {
-            remove_online_user();
-            break;
-        }
         strcat(message_buffer, local_message);
         if ((send(socket_file_descriptor, message_buffer, strlen(message_buffer), 0)) < 0)
         {

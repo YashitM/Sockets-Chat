@@ -32,7 +32,7 @@ int main()
     {
         if ((pid = fork()) == 0)
         {
-            printf("New User Connected!\n");
+            printf("User Connected\n");
 
             close(socket_file_descriptor);
 
@@ -40,6 +40,10 @@ int main()
 
             while (recv(connection, message_buffer, 256, 0) > 0)
             {
+                if(strstr(message_buffer,"exit")) {
+                    printf("User Disconnected\n");
+                    break;
+                }
                 printf("%s", message_buffer);
                 memset(message_buffer, 0, sizeof(message_buffer));
             }
