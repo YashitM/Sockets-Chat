@@ -4,7 +4,6 @@
 #include <netinet/in.h>
 #include <string.h>
 
-#define PORT 8080
 #define true 1
 #define false 0
 
@@ -92,6 +91,17 @@ void user_setup() {
     add_online_user();
 }
 
+void init() {
+    printf("\n");
+    printf("__          __   _                             _            _____ _           _   \n");
+    printf("\\ \\        / /  | |                           | |          / ____| |         | |  \n");
+    printf(" \\ \\  /\\  / /___| | ___  ___  _ __ ___   ___  | |_  ___   | |    | |__   __ _| |_ \n");
+    printf("  \\ \\/  \\/ // _ \\ |/ __|/ _ \\| '_ ` _ \\ / _ \\ | __|/ _ \\  | |    | '_ \\ / _` | __|\n");
+    printf("   \\  /\\  /|  __/ | (__| (_) | | | | | |  __/ | |_| (_) | | |____| | | | (_| | |_ \n");
+    printf("    \\/  \\/  \\___|_|\\___|\\___/|_| |_| |_|\\___|  \\__|\\___/   \\_____|_| |_|\\__,_|\\__|\n");
+    printf("\n");
+}
+
 int main(int argc, char const *argv[])
 {
     struct sockaddr_in server;
@@ -120,6 +130,8 @@ int main(int argc, char const *argv[])
         printf("Couldn't connect to Server\n");
         return 0;
     }
+
+    init();
 
     user_setup();
 
