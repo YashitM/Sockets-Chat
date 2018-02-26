@@ -38,7 +38,7 @@ void add_online_user() {
     if (file) 
     {
         char string_for_file[1000];
-        sprintf(string_for_file, "%d) %s\n", counter, username);
+        sprintf(string_for_file, "%d) %s;\n", counter, username);
         fputs(string_for_file, file);
         fclose(file);
     }
@@ -64,24 +64,32 @@ int get_online_users() {
 }
 
 void remove_online_user() {
-    FILE *f;
+    FILE *f, *f2;
     char *line = NULL;
     size_t len = 0;
     ssize_t read;
+    char username_delimiter[100] = "";
+
+    strcpy(username_delimiter, ") ");
+    strcat(username_delimiter, username);
+    strcat(username_delimiter, ";");
 
     f = fopen(user_file_name, "r");
-    if (f) {
+    f2 = fopen("temp", "w");
+    if (f && f2) {
         while ((read = getline(&line, &len, f)) != -1)
         {
-            printf("Retrieved line of length %zu :\n", read);
-            printf("%s", line);
+            if(!strstr(line, username_delimiter)) {
+                fputs(line, f2);
+            }
         }
+        fclose(f2);
+        fclose(f);
+        if (remove(user_file_name) != 0)
+            printf("Couldn't delete users file\n");
+        if (rename("temp", user_file_name) != 0)
+            printf("Couldn't remove temp file\n");
     }
-
-    fclose(f);
-    if (line)
-        free(line);
-    exit(EXIT_SUCCESS);
 }
 
 void user_setup() {
@@ -102,6 +110,19 @@ void init() {
     printf("\n");
 }
 
+void end() {
+    printf("\n");
+    printf(" _______ _                 _           __              _____ _           _   _   _             _ \n");
+    printf("|__   __| |               | |         / _|            / ____| |         | | | | (_)           | |\n");
+    printf("   | |  | |__   __ _ _ __ | | _____  | |_ ___  _ __  | |    | |__   __ _| |_| |_ _ _ __   __ _| |\n");
+    printf("   | |  | '_ \\ / _` | '_ \\| |/ / __| |  _/ _ \\| '__| | |    | '_ \\ / _` | __| __| | '_ \\ / _` | |\n");
+    printf("   | |  | | | | (_| | | | |   <\\__ \\ | || (_) | |    | |____| | | | (_| | |_| |_| | | | | (_| |_|\n");
+    printf("   |_|  |_| |_|\\__,_|_| |_|_|\\_\\___/ |_| \\___/|_|     \\_____|_| |_|\\__,_|\\__|\\__|_|_| |_|\\__, (_)\n");
+    printf("                                                                                          __/ |  \n");
+    printf("                                                                                         |___/   \n");
+    printf("\n");
+}
+
 int main()
 {
     struct sockaddr_in server;
@@ -117,7 +138,7 @@ int main()
     memset(&server, '0', sizeof(server));
 
     server.sin_family = AF_INET;
-    server.sin_port = htons(8090);
+    server.sin_port = htons(8080);
 
     if (inet_pton(AF_INET, "127.0.0.1", &server.sin_addr) < 0)
     {
@@ -132,7 +153,6 @@ int main()
     }
 
     init();
-
     user_setup();
 
     // Todo: Add check for whether users exist or not
@@ -146,7 +166,7 @@ int main()
         fgets(local_message, 900, stdin);
         if (strstr(local_message, "exit"))
         {
-            // remove_online_user();
+            remove_online_user();
             if ((send(socket_file_descriptor, local_message, strlen(local_message), 0)) < 0)
             {
                 printf("Couldn't send message\n");
@@ -165,5 +185,6 @@ int main()
         }
     }
     close(socket_file_descriptor);
+    end();
     return 0;
 }
