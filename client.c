@@ -9,6 +9,7 @@
 #define false 0
 
 #define user_file_name "users"
+#define port 9090
 
 char username[100] = "";
 pthread_t thread_write, thread_read;
@@ -165,6 +166,23 @@ void *write_function(void *fd)
     int *socket_fd = fd;
     pthread_t id = pthread_self();
 
+    FILE *file = fopen(user_file_name, "r");
+    
+    while(true) {
+        printf("Enter your Username: ");
+        memset(username, 0, sizeof(username));
+        fgets(username, 100, stdin);
+        username[strcspn(username, "\n")] = 0;
+        if (check_already_exists(file) == false)
+            break;
+    }
+
+    if (send(*socket_fd, username, strlen(username), 0) < 0)
+    {
+        printf("Couldn't send message\n");
+        return 0;
+    }
+
     while (1)
     {
         fgets(local_message, 900, stdin);
@@ -225,7 +243,7 @@ int main()
     memset(&server, '0', sizeof(server));
 
     server.sin_family = AF_INET;
-    server.sin_port = htons(9090);
+    server.sin_port = htons(port);
 
     if (inet_pton(AF_INET, "127.0.0.1", &server.sin_addr) < 0)
     {
@@ -240,7 +258,7 @@ int main()
     }
 
     init();
-    user_setup();
+    // user_setup();
 
     // Todo: Add check for whether users exist or not
     // Todo: Add signal handler for ctrl + c
