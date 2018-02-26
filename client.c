@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <netinet/in.h>
 #include <string.h>
+#include <pthread.h>
 
 #define true 1
 #define false 0
@@ -157,8 +158,59 @@ void end() {
     printf("\n");
 }
 
+void *write_function(void *fd)
+{
+    char message_buffer[1024], local_message[900];
+    int *socket_fd = fd;
+    while (1)
+    {
+        printf("Enter your message: ");
+        fgets(local_message, 900, stdin);
+        if (strstr(local_message, "exit"))
+        {
+            remove_online_user();
+            if (send(*socket_fd, local_message, strlen(local_message), 0) < 0)
+            {
+                printf("Couldn't send message\n");
+                return 0;
+            }
+            break;
+        }
+
+        memset(message_buffer, 0, sizeof(message_buffer));
+        strcat(message_buffer, username);
+        strcat(message_buffer, ": ");
+        strcat(message_buffer, local_message);
+
+        if (send(*socket_fd, message_buffer, strlen(message_buffer), 0) < 0)
+        {
+            printf("Couldn't send message\n");
+            return 0;
+        }
+    }
+    close(*socket_fd);
+    end();
+}
+
+void *read_function(void *fd)
+{
+    char message_buffer[1024];
+    int *socket_fd = fd;
+
+    memset(message_buffer, 0, sizeof(message_buffer));
+
+    while (recv(*socket_fd, message_buffer, 256, 0) > 0)
+    {
+        printf("%s", message_buffer);
+        memset(message_buffer, 0, sizeof(message_buffer));
+    }
+    close(*socket_fd);
+    end();
+}
+
 int main()
 {
+    pthread_t thread_write, thread_read;
     struct sockaddr_in server;
     int socket_file_descriptor = 0, connection;
     char message_buffer[1024] = "";
@@ -172,7 +224,7 @@ int main()
     memset(&server, '0', sizeof(server));
 
     server.sin_family = AF_INET;
-    server.sin_port = htons(8090);
+    server.sin_port = htons(9090);
 
     if (inet_pton(AF_INET, "127.0.0.1", &server.sin_addr) < 0)
     {
@@ -192,33 +244,15 @@ int main()
     // Todo: Add check for whether users exist or not
     // Todo: Add signal handler for ctrl + c
 
-    while(true) {
-
-        char local_message[1024];
-
-        printf("Enter your message: ");
-        fgets(local_message, 900, stdin);
-        if (strstr(local_message, "exit"))
-        {
-            remove_online_user();
-            if (send(socket_file_descriptor, local_message, strlen(local_message), 0) < 0)
-            {
-                printf("Couldn't send message\n");
-                return 0;
-            }
-            break;
-        }
-        memset(message_buffer, 0, sizeof(message_buffer));
-        strcat(message_buffer, username);
-        strcat(message_buffer, ": ");
-        strcat(message_buffer, local_message);
-        if (send(socket_file_descriptor, message_buffer, strlen(message_buffer), 0) < 0)
-        {
-            printf("Couldn't send message\n");
-            return 0;
-        }
-    }
-    close(socket_file_descriptor);
+    pthread_create(&thread_write, NULL, write_function, &socket_file_descriptor);
+    pthread_create(&thread_read, NULL, read_function, &socket_file_descriptor);
+    pthread_join(thread_write, NULL);
+    pthread_join(thread_read, NULL);
+    
     end();
+    
+    pthread_cancel(thread_write);
+    pthread_cancel(thread_read);
+
     return 0;
 }

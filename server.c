@@ -22,12 +22,16 @@ int main()
     memset(&server, '0', sizeof(server));
 
     server.sin_family = AF_INET;
-    server.sin_port = htons(8090);
+    server.sin_port = htons(9090);
     server.sin_addr.s_addr = htonl(INADDR_ANY);
 
-    bind(socket_file_descriptor, (struct sockaddr *)&server, sizeof(server));
+    if(bind(socket_file_descriptor, (struct sockaddr *)&server, sizeof(server)) != 0) {
+        printf("Port Busy\n");
+        return 0;
+    }
 
     listen(socket_file_descriptor, 5);
+
     while (connection = accept(socket_file_descriptor, (struct sockaddr *)NULL, NULL))
     {
         if ((pid = fork()) == 0)
@@ -45,6 +49,7 @@ int main()
                     break;
                 }
                 printf("%s", message_buffer);
+                // send(connection, message_buffer, sizeof(message_buffer), 0);
                 memset(message_buffer, 0, sizeof(message_buffer));
             }
             close(connection);
