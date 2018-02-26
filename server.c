@@ -7,6 +7,26 @@
 #define true 1
 #define false 0
 
+int current_connections[10];
+int current_connection_length = 0;
+
+void send_to_all(char message[1024], int current_connection) {
+    int i=0;
+    for (i = 0; i < current_connection_length; i++)
+    {
+        if (current_connections[i]!=current_connection) {
+            send(current_connections[i], message, sizeof(message), 0);
+        }
+    }
+}
+
+void print_all_connections() {
+    int i;
+    for(i=0 ; i<current_connection_length; i++) {
+        printf("%d\n", current_connections[i]);
+    }
+}
+
 int main()
 {
     int socket_file_descriptor = 0, pid, connection;
@@ -34,6 +54,8 @@ int main()
 
     while (connection = accept(socket_file_descriptor, (struct sockaddr *)NULL, NULL))
     {
+        current_connections[current_connection_length++] = connection;
+
         if ((pid = fork()) == 0)
         {
             printf("User Connected\n");
@@ -49,7 +71,14 @@ int main()
                     break;
                 }
                 printf("%s", message_buffer);
-                // send(connection, message_buffer, sizeof(message_buffer), 0);
+                int i = 0;
+                for (i = 0; i < current_connection_length; i++)
+                {
+                    if (current_connections[i] != connection)
+                    {
+                        send(current_connections[i], message_buffer, sizeof(message_buffer), 0);
+                    }
+                }
                 memset(message_buffer, 0, sizeof(message_buffer));
             }
             close(connection);

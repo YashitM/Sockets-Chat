@@ -11,6 +11,7 @@
 #define user_file_name "users"
 
 char username[100] = "";
+pthread_t thread_write, thread_read;
 
 int get_user_count() {
     int lines = 1, c = 0;
@@ -162,9 +163,10 @@ void *write_function(void *fd)
 {
     char message_buffer[1024], local_message[900];
     int *socket_fd = fd;
+    pthread_t id = pthread_self();
+
     while (1)
     {
-        printf("Enter your message: ");
         fgets(local_message, 900, stdin);
         if (strstr(local_message, "exit"))
         {
@@ -189,7 +191,7 @@ void *write_function(void *fd)
         }
     }
     close(*socket_fd);
-    end();
+    pthread_exit(&thread_write);
 }
 
 void *read_function(void *fd)
@@ -205,12 +207,11 @@ void *read_function(void *fd)
         memset(message_buffer, 0, sizeof(message_buffer));
     }
     close(*socket_fd);
-    end();
+    pthread_exit(&thread_read);
 }
 
 int main()
 {
-    pthread_t thread_write, thread_read;
     struct sockaddr_in server;
     int socket_file_descriptor = 0, connection;
     char message_buffer[1024] = "";
@@ -250,8 +251,7 @@ int main()
     pthread_join(thread_read, NULL);
     
     end();
-    
-    pthread_cancel(thread_write);
+
     pthread_cancel(thread_read);
 
     return 0;
