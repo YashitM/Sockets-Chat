@@ -9,7 +9,7 @@
 #define false 0
 
 #define user_file_name "users"
-#define port 9090
+#define port 9092
 
 char username[100] = "";
 pthread_t thread_write, thread_read;
@@ -136,7 +136,27 @@ int user_setup() {
     return true;
 }
 
-void init() {
+int check_choice(int choice) {
+    FILE *file = fopen(user_file_name, "r");
+    char *line = NULL;
+    size_t len = 0;
+    if(file) {
+        char check_string[10];
+        sprintf(check_string, "%d) ", choice);
+        while (getline(&line, &len, file) != -1)
+        {
+            if (strstr(line, check_string))
+            {
+                fclose(file);
+                return true;
+            }
+        }
+        fclose(file);
+    }
+    return false;
+}
+
+void init(int socket_fd) {
     printf("\n");
     printf("__          __   _                             _            _____ _           _   \n");
     printf("\\ \\        / /  | |                           | |          / ____| |         | |  \n");
@@ -145,6 +165,71 @@ void init() {
     printf("   \\  /\\  /|  __/ | (__| (_) | | | | | |  __/ | |_| (_) | | |____| | | | (_| | |_ \n");
     printf("    \\/  \\/  \\___|_|\\___|\\___/|_| |_| |_|\\___|  \\__|\\___/   \\_____|_| |_|\\__,_|\\__|\n");
     printf("\n");
+
+    FILE *file = fopen(user_file_name, "r");
+
+    while (true)
+    {
+        printf("Enter your Username: ");
+        memset(username, 0, sizeof(username));
+        fgets(username, 100, stdin);
+        username[strcspn(username, "\n")] = 0;
+        if (check_already_exists(file) == false)
+        {
+            break;
+        }
+    }
+
+    if (send(socket_fd, username, strlen(username), 0) < 0)
+    {
+        printf("Couldn't send message\n");
+        return ;
+    }
+
+    printf("Available ChatRooms\n");
+    printf("1) Global;\n");
+
+    if (get_user_count() > 1)
+    {
+        int c;
+        size_t len = 0;
+        FILE *file;
+        char *line = NULL;
+        file = fopen(user_file_name, "r");
+        if (file)
+        {
+            while (getline(&line, &len, file) != -1)
+            {
+                if (!strstr(line, username))
+                {
+                    printf("%s", line);
+                }
+            }
+            fclose(file);
+        }
+    }
+    int choice;
+    while (true)
+    {
+        printf("Select a Chatroom: ");
+        scanf("%d", &choice);
+        if(choice == 1) {
+            break;
+        }
+        if (check_choice(choice) == true)
+        {
+            printf("You are now chatting with User Number: %d\n", choice);
+            break;
+        }
+    }
+
+    if(choice != 1) {
+        char check_string[10];
+        sprintf(check_string, "%d", choice);
+        strcat(username, ";;;;;");
+        strcat(username, check_string);
+        strcat(username, ";;;;;");
+    }
 }
 
 void end() {
@@ -165,23 +250,6 @@ void *write_function(void *fd)
     char message_buffer[1024], local_message[900];
     int *socket_fd = fd;
     pthread_t id = pthread_self();
-
-    FILE *file = fopen(user_file_name, "r");
-    
-    while(true) {
-        printf("Enter your Username: ");
-        memset(username, 0, sizeof(username));
-        fgets(username, 100, stdin);
-        username[strcspn(username, "\n")] = 0;
-        if (check_already_exists(file) == false)
-            break;
-    }
-
-    if (send(*socket_fd, username, strlen(username), 0) < 0)
-    {
-        printf("Couldn't send message\n");
-        return 0;
-    }
 
     while (1)
     {
@@ -257,7 +325,7 @@ int main()
         return 0;
     }
 
-    init();
+    init(socket_file_descriptor);
     // user_setup();
 
     // Todo: Add check for whether users exist or not

@@ -7,7 +7,7 @@
 #define true 1
 #define false 0
 
-#define port 9090
+#define port 9092
 #define MAX_CONNECTIONS 5
 #define user_file_name "users"
 
@@ -18,16 +18,6 @@ struct thread_arguments {
 
 int current_connections[10];
 int current_connection_length = 0;
-
-void send_to_all(char message[1024], int current_connection) {
-    int i=0;
-    for (i = 0; i < current_connection_length; i++)
-    {
-        if (current_connections[i]!=current_connection) {
-            send(current_connections[i], message, sizeof(message), 0);
-        }
-    }
-}
 
 void print_all_connections() {
     int i;
@@ -85,13 +75,34 @@ void *handle_connection(void *thread_arg) {
             remove_connection(connection_fd);
             break;
         }
-        printf("%s", message_buffer);
-        int i = 0;
-        for (i = 0; i < current_connection_length; i++)
-        {
-            if (current_connections[i] != connection_fd)
+        // printf("%s", message_buffer);
+        if (strstr(message_buffer, ";;;;;")) {
+            char *pch;
+            pch = strtok(message_buffer, ";;;;;");
+            char *message_array[100];
+            memset(message_array, 0, sizeof(message_array));
+            int line_counter = 0;
+            while (pch != NULL)
             {
-                send(current_connections[i], message_buffer, sizeof(message_buffer), 0);
+                message_array[line_counter++] = pch;
+                pch = strtok(NULL, ";;;;;");
+            }
+            char final_message[1000];
+            memset(final_message, 0, sizeof(final_message));
+            strcat(final_message, message_array[0]);
+            strcat(final_message, message_array[2]);
+            printf("%s\n", final_message);
+            int conn_id = (int)strtol(message_array[1], (char **)NULL, 10);
+            send(conn_id, final_message, sizeof(final_message), 0);
+        }
+        else {
+            int i = 0;
+            for (i = 0; i < current_connection_length; i++)
+            {
+                if (current_connections[i] != connection_fd)
+                {
+                    send(current_connections[i], message_buffer, sizeof(message_buffer), 0);
+                }
             }
         }
         // printf("Number of Users: %d\n", current_connection_length);

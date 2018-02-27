@@ -1,4 +1,7 @@
-all: server client
+all: server client users
+
+users:
+	touch users
 	
 server: server.c
 	gcc -pthread server.c -o server
