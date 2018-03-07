@@ -69,7 +69,7 @@ void *handle_connection(void *thread_arg) {
 
     while (recv(connection_fd, message_buffer, 256, 0) > 0)
     {
-        if (strstr(message_buffer, "exit"))
+        if (strstr(message_buffer, "exithard"))
         {
             printf("User Disconnected: %d\n", connection_fd);
             remove_connection(connection_fd);
@@ -97,6 +97,7 @@ void *handle_connection(void *thread_arg) {
         }
         else {
             int i = 0;
+            printf("Messgae Recieved: %s", message_buffer);
             for (i = 0; i < current_connection_length; i++)
             {
                 if (current_connections[i] != connection_fd)

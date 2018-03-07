@@ -156,6 +156,98 @@ int check_choice(int choice) {
     return false;
 }
 
+void select_chatroom(int socket_fd) {
+    printf("Available ChatRooms\n");
+    printf("1) Global;\n");
+
+    if (get_user_count() > 1)
+    {
+        int c;
+        size_t len = 0;
+        FILE *file;
+        char *line = NULL;
+        file = fopen(user_file_name, "r");
+        if (file)
+        {
+            while (getline(&line, &len, file) != -1)
+            {
+                if (!strstr(line, username))
+                {
+                    printf("%s", line);
+                }
+            }
+            fclose(file);
+        }
+    }
+    printf("0) Exit;\n");
+    int choice;
+    while (true)
+    {
+        printf("Select a Chatroom: ");
+        scanf("%d", &choice);
+        if (choice == 1 || choice == 0)
+        {
+            break;
+        }
+        if (check_choice(choice) == true)
+        {
+            printf("You are now chatting with User Number: %d\n", choice);
+            break;
+        }
+    }
+
+    if (choice == 0)
+    {
+        remove_online_user();
+        close(socket_fd);
+        exit(0);
+    }
+    else if(choice == 1) {
+        if (strstr(username, ";;;;;"))
+        {
+            char *pch;
+            pch = strtok(username, ";;;;;");
+            char *message_array[100];
+            memset(message_array, 0, sizeof(message_array));
+            int line_counter = 0;
+            while (pch != NULL)
+            {
+                message_array[line_counter++] = pch;
+                pch = strtok(NULL, ";;;;;");
+            }
+            char final_message[1000];
+            memset(final_message, 0, sizeof(final_message));
+            strcat(final_message, message_array[0]);
+            strcpy(username, final_message);
+        }
+    }
+    else if (choice != 1)
+    {
+        char choice_string[10];
+        if (strstr(username, ";;;;;"))
+        {
+            char *pch;
+            pch = strtok(username, ";;;;;");
+            char *message_array[100];
+            memset(message_array, 0, sizeof(message_array));
+            int line_counter = 0;
+            while (pch != NULL)
+            {
+                message_array[line_counter++] = pch;
+                pch = strtok(NULL, ";;;;;");
+            }
+            char final_message[1000];
+            memset(final_message, 0, sizeof(final_message));
+            strcat(final_message, message_array[0]);
+            strcpy(username, final_message);
+        }
+        sprintf(choice_string, "%d", choice);
+        strcat(username, ";;;;;");
+        strcat(username, choice_string);
+        strcat(username, ";;;;;");
+    }
+}
+
 void init(int socket_fd) {
     printf("\n");
     printf("__          __   _                             _            _____ _           _   \n");
@@ -179,56 +271,10 @@ void init(int socket_fd) {
             break;
         }
     }
-
     if (send(socket_fd, username, strlen(username), 0) < 0)
     {
         printf("Couldn't send message\n");
-        return ;
-    }
-
-    printf("Available ChatRooms\n");
-    printf("1) Global;\n");
-
-    if (get_user_count() > 1)
-    {
-        int c;
-        size_t len = 0;
-        FILE *file;
-        char *line = NULL;
-        file = fopen(user_file_name, "r");
-        if (file)
-        {
-            while (getline(&line, &len, file) != -1)
-            {
-                if (!strstr(line, username))
-                {
-                    printf("%s", line);
-                }
-            }
-            fclose(file);
-        }
-    }
-    int choice;
-    while (true)
-    {
-        printf("Select a Chatroom: ");
-        scanf("%d", &choice);
-        if(choice == 1) {
-            break;
-        }
-        if (check_choice(choice) == true)
-        {
-            printf("You are now chatting with User Number: %d\n", choice);
-            break;
-        }
-    }
-
-    if(choice != 1) {
-        char check_string[10];
-        sprintf(check_string, "%d", choice);
-        strcat(username, ";;;;;");
-        strcat(username, check_string);
-        strcat(username, ";;;;;");
+        return;
     }
 }
 
@@ -249,35 +295,53 @@ void *write_function(void *fd)
 {
     char message_buffer[1024], local_message[900];
     int *socket_fd = fd;
-    pthread_t id = pthread_self();
-
-    while (1)
-    {
-        fgets(local_message, 900, stdin);
-        if (strstr(local_message, "exit"))
+    while(true) {
+        select_chatroom(*socket_fd);
+        printf("New Username: %s\n", username);
+        while (true)
         {
-            remove_online_user();
-            if (send(*socket_fd, local_message, strlen(local_message), 0) < 0)
+            fgets(local_message, 900, stdin);
+            if (strstr(local_message, "exithard"))
+            {
+                remove_online_user();
+                if (send(*socket_fd, local_message, strlen(local_message), 0) < 0)
+                {
+                    printf("Couldn't send message\n");
+                    pthread_exit(&thread_write);
+                    pthread_exit(&thread_read);
+                    return 0;
+                }
+                close(*socket_fd);
+                exit(0);
+            }
+            else if (strstr(local_message, "exit"))
+            {
+                if (send(*socket_fd, local_message, strlen(local_message), 0) < 0)
+                {
+                    printf("Couldn't send message\n");
+                    pthread_exit(&thread_write);
+                    pthread_exit(&thread_read);
+                    return 0;
+                }
+                break;
+            }
+
+            memset(message_buffer, 0, sizeof(message_buffer));
+            strcat(message_buffer, username);
+            strcat(message_buffer, ": ");
+            strcat(message_buffer, local_message);
+
+            if (send(*socket_fd, message_buffer, strlen(message_buffer), 0) < 0)
             {
                 printf("Couldn't send message\n");
+                pthread_exit(&thread_write);
+                pthread_exit(&thread_read);
                 return 0;
             }
-            break;
-        }
-
-        memset(message_buffer, 0, sizeof(message_buffer));
-        strcat(message_buffer, username);
-        strcat(message_buffer, ": ");
-        strcat(message_buffer, local_message);
-
-        if (send(*socket_fd, message_buffer, strlen(message_buffer), 0) < 0)
-        {
-            printf("Couldn't send message\n");
-            return 0;
         }
     }
-    close(*socket_fd);
     pthread_exit(&thread_write);
+    pthread_exit(&thread_read);
 }
 
 void *read_function(void *fd)
@@ -292,7 +356,6 @@ void *read_function(void *fd)
         printf("%s", message_buffer);
         memset(message_buffer, 0, sizeof(message_buffer));
     }
-    close(*socket_fd);
     pthread_exit(&thread_read);
 }
 
@@ -324,21 +387,24 @@ int main()
         printf("Couldn't connect to Server\n");
         return 0;
     }
+    
+    int loop_counter = 0;
 
     init(socket_file_descriptor);
-    // user_setup();
+    while(true) {
+        // user_setup();
 
-    // Todo: Add check for whether users exist or not
-    // Todo: Add signal handler for ctrl + c
+        // Todo: Add check for whether users exist or not
+        // Todo: Add signal handler for ctrl + c
+        // Todo: Add the while loop (currently in init) into the pthread_function itself.
 
-    pthread_create(&thread_write, NULL, write_function, &socket_file_descriptor);
-    pthread_create(&thread_read, NULL, read_function, &socket_file_descriptor);
-    pthread_join(thread_write, NULL);
-    pthread_join(thread_read, NULL);
-    
+        pthread_create(&thread_write, NULL, write_function, &socket_file_descriptor);
+        pthread_create(&thread_read, NULL, read_function, &socket_file_descriptor);
+        pthread_join(thread_write, NULL);
+        pthread_join(thread_read, NULL);
+        loop_counter += 1;
+    }
+
     end();
-
-    pthread_cancel(thread_read);
-
     return 0;
 }
