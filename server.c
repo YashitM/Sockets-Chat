@@ -75,7 +75,7 @@ void *handle_connection(void *thread_arg) {
             remove_connection(connection_fd);
             break;
         }
-        // printf("%s", message_buffer);
+        printf("%s", message_buffer);
         if (strstr(message_buffer, ";;;;;")) {
             char *pch;
             pch = strtok(message_buffer, ";;;;;");
@@ -90,10 +90,19 @@ void *handle_connection(void *thread_arg) {
             char final_message[1000];
             memset(final_message, 0, sizeof(final_message));
             strcat(final_message, message_array[0]);
-            strcat(final_message, message_array[2]);
-            printf("%s\n", final_message);
-            int conn_id = (int)strtol(message_array[1], (char **)NULL, 10);
-            send(conn_id, final_message, sizeof(final_message), 0);
+            strcat(final_message, message_array[line_counter-1]);
+            int iterator = 0;
+            // printf("Line counter: %d\n", line_counter);
+            // for(; iterator<line_counter; iterator++) {
+            //     printf("%s\n", message_array[iterator]);
+            // }
+            // printf("Final Message: %s\n", final_message);
+            iterator = 1;
+            for (; iterator < line_counter - 1; iterator ++) {
+                int conn_id = (int)strtol(message_array[iterator], (char **)NULL, 10);
+                if (conn_id != connection_fd)
+                    send(conn_id, final_message, sizeof(final_message), 0);
+            }
         }
         else {
             int i = 0;

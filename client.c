@@ -102,6 +102,24 @@ void remove_online_user() {
     ssize_t read;
     char username_delimiter[100] = "";
 
+    if (strstr(username, ";;;;;"))
+    {
+        char *pch;
+        pch = strtok(username, ";;;;;");
+        char *message_array[100];
+        memset(message_array, 0, sizeof(message_array));
+        int line_counter = 0;
+        while (pch != NULL)
+        {
+            message_array[line_counter++] = pch;
+            pch = strtok(NULL, ";;;;;");
+        }
+        char final_message[1000];
+        memset(final_message, 0, sizeof(final_message));
+        strcat(final_message, message_array[0]);
+        strcpy(username, final_message);
+    }
+
     strcpy(username_delimiter, ") ");
     strcat(username_delimiter, username);
     strcat(username_delimiter, ";");
@@ -158,7 +176,8 @@ int check_choice(int choice) {
 
 void select_chatroom(int socket_fd) {
     printf("Available ChatRooms\n");
-    printf("1) Global;\n");
+    printf("111) Global;\n");
+    printf("222) Group Chat;\n");
 
     if (get_user_count() > 1)
     {
@@ -179,13 +198,13 @@ void select_chatroom(int socket_fd) {
             fclose(file);
         }
     }
-    printf("0) Exit;\n");
+    printf("000) Exit;\n");
     int choice;
     while (true)
     {
         printf("Select a Chatroom: ");
         scanf("%d", &choice);
-        if (choice == 1 || choice == 0)
+        if (choice == 111 || choice == 000 || choice == 222)
         {
             break;
         }
@@ -196,13 +215,13 @@ void select_chatroom(int socket_fd) {
         }
     }
 
-    if (choice == 0)
+    if (choice == 000)
     {
         remove_online_user();
         close(socket_fd);
         exit(0);
     }
-    else if(choice == 1) {
+    else if(choice == 111) {
         if (strstr(username, ";;;;;"))
         {
             char *pch;
@@ -221,7 +240,64 @@ void select_chatroom(int socket_fd) {
             strcpy(username, final_message);
         }
     }
-    else if (choice != 1)
+    else if (choice == 222) {
+        printf("Enter the Users you want to chat with (eg: 2,3,4): ");
+        char group_users[100] = "";
+        scanf("%100s", group_users);
+        char *tokenizer;
+        tokenizer = strtok(group_users, ",");
+        char *string_users_array[100];
+        memset(string_users_array, 0, sizeof(string_users_array));
+        int user_counter = 0;
+        while (tokenizer != NULL)
+        {
+            string_users_array[user_counter++] = tokenizer;
+            tokenizer = strtok(NULL, ",");
+        }
+        int k=0;
+        int users_array[100];
+        int valid_user_counter = 0;
+        for (; k < user_counter; k++) {
+            int x;
+            sscanf(string_users_array[k], "%d", &x);
+            if(check_choice(x) == true) {
+                users_array[valid_user_counter++] = x;
+            }
+        }
+        
+        if(valid_user_counter > 0) {
+            if (strstr(username, ";;;;;"))
+            {
+                char *pch;
+                pch = strtok(username, ";;;;;");
+                char *message_array[100];
+                memset(message_array, 0, sizeof(message_array));
+                int line_counter = 0;
+                while (pch != NULL)
+                {
+                    message_array[line_counter++] = pch;
+                    pch = strtok(NULL, ";;;;;");
+                }
+                char final_message[1000];
+                memset(final_message, 0, sizeof(final_message));
+                strcat(final_message, message_array[0]);
+                strcpy(username, final_message);
+            }
+            int x=0;
+            for(; x<valid_user_counter; x++) {
+                char choice_string[10];
+                sprintf(choice_string, "%d", users_array[x]);
+                strcat(username, ";;;;;");
+                strcat(username, choice_string);
+            }
+            strcat(username, ";;;;;");
+            printf("%s\n", username);
+        }
+        else {
+            printf("No valid user entered\n");
+        }
+    }
+    else
     {
         char choice_string[10];
         if (strstr(username, ";;;;;"))
@@ -297,7 +373,6 @@ void *write_function(void *fd)
     int *socket_fd = fd;
     while(true) {
         select_chatroom(*socket_fd);
-        printf("New Username: %s\n", username);
         while (true)
         {
             fgets(local_message, 900, stdin);
@@ -316,13 +391,6 @@ void *write_function(void *fd)
             }
             else if (strstr(local_message, "exit"))
             {
-                if (send(*socket_fd, local_message, strlen(local_message), 0) < 0)
-                {
-                    printf("Couldn't send message\n");
-                    pthread_exit(&thread_write);
-                    pthread_exit(&thread_read);
-                    return 0;
-                }
                 break;
             }
 
@@ -394,9 +462,7 @@ int main()
     while(true) {
         // user_setup();
 
-        // Todo: Add check for whether users exist or not
         // Todo: Add signal handler for ctrl + c
-        // Todo: Add the while loop (currently in init) into the pthread_function itself.
 
         pthread_create(&thread_write, NULL, write_function, &socket_file_descriptor);
         pthread_create(&thread_read, NULL, read_function, &socket_file_descriptor);
