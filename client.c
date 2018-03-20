@@ -171,6 +171,7 @@ int check_choice(int choice) {
         }
         fclose(file);
     }
+    printf("User with ID: %d Already Exists\n", var);
     return false;
 }
 
@@ -291,7 +292,6 @@ void select_chatroom(int socket_fd) {
                 strcat(username, choice_string);
             }
             strcat(username, ";;;;;");
-            printf("%s\n", username);
         }
         else {
             printf("No valid user entered\n");

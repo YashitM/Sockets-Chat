@@ -16,7 +16,7 @@ In the client script, again, a socket is first created and then the client searc
 The compilation of the program can be easily done using the `make` command. `make clean` will clear all the binaries and other files that are required for the program to function.
 
 ## Inputs
-The user (client) on successful connection with the server is expected to enter a useranme (for identification) and also select the user he/she wants to chat with. After this basic setup, the user can send messages to server (Even when the messages are being recieved, as reading and writing are done in two separate threads). To exit to the selection menu (to whom to chat with), the user can type `exit`. So as to exit the complete program, the user can type `exithard`.
+The user (client) on successful connection with the server is expected to enter a useranme (for identification) and also select the user he/she wants to chat with. If the user wants to chat with everyone, the global option can be selected. If the user wants to chat with a bunch of people (not all), the option for Groups can be selected. And the user is expected to enter the number corresponding to the users he/she wishes to chat with (eg: `2,3,4`). After this basic setup, the user can send messages to server (Even when the messages are being recieved, as reading and writing are done in two separate threads). To exit to the selection menu (to whom to chat with), the user can type `exit`. So as to exit the complete program, the user can type `exithard`.
 
 ## Output
 If the user recieves a message, it will be prompted on the screen of the user (regardless of whose chat the user is focussed into). The name of the person who sent the message will also be displayed (for identification purposes).
@@ -25,9 +25,17 @@ If the user recieves a message, it will be prompted on the screen of the user (r
 In both the server and client scripts, if an error is detected in the socket creation, a corresponding message is displayed on the console.
 
 `Couldn't create Socket`: When `socket()` function returns error
+
 `Couldn't connect to Server`: When `connect()` function (in the client script return an error).
 `Port Busy`: When the server cannot connect to the desired port.
+
 `Couldn't add a new user`: When the user file cannot be created.
+
+`Username already exists :(`: When the username that is entered already exists.
+
+`User with ID: <num> Already Exists`: When the ID entered (ID of the person the user wants to chat with) is invalid.
+
+`No valid user entered`: When the user enters all invalid entries in the Group Chat Selection
 
 ## Note
 A `users` files is maintained so as to keep a log of the online users.

@@ -75,7 +75,6 @@ void *handle_connection(void *thread_arg) {
             remove_connection(connection_fd);
             break;
         }
-        printf("%s", message_buffer);
         if (strstr(message_buffer, ";;;;;")) {
             char *pch;
             pch = strtok(message_buffer, ";;;;;");
